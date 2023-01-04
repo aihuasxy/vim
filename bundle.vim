@@ -54,6 +54,7 @@ if has_key(s:enabled, 'simple')
 	Plug 'godlygeek/tabular', { 'on': 'Tabularize' }
 	Plug 'bootleq/vim-cycle'
 	Plug 'tpope/vim-surround'
+	" Plug 'romainl/vim-cool'
 
 	nnoremap gb= :Tabularize /=<CR>
 	vnoremap gb= :Tabularize /=<CR>
@@ -66,6 +67,7 @@ if has_key(s:enabled, 'simple')
 	nnoremap gbl :Tabularize /\|<cr>
 	vnoremap gbl :Tabularize /\|<cr>
 	nnoremap gbc :Tabularize /#/l4c1<cr>
+	vnoremap gbc :Tabularize /#/l4c1<cr>
 	nnoremap gb<bar> :Tabularize /\|<cr>
 	vnoremap gb<bar> :Tabularize /\|<cr>
 	nnoremap gbr :Tabularize /\|/r0<cr>
@@ -95,14 +97,16 @@ if has_key(s:enabled, 'basic')
 
 	Plug 'pprovost/vim-ps1', { 'for': 'ps1' }
 	Plug 'tbastos/vim-lua', { 'for': 'lua' }
-	Plug 'octol/vim-cpp-enhanced-highlight', { 'for': ['c', 'cpp'] }
 	Plug 'vim-python/python-syntax', { 'for': ['python'] }
 	Plug 'pboettch/vim-cmake-syntax', { 'for': ['cmake'] }
+	Plug 'skywind3000/vim-flex-bison-syntax', { 'for': ['yacc', 'lex'] }
+	Plug 'dylon/vim-antlr'
 	Plug 'beyondmarc/hlsl.vim'
 	Plug 'peterhoeg/vim-qml'
 	Plug 'tpope/vim-eunuch'
 	Plug 'dag/vim-fish'
 	Plug 'jamessan/vim-gnupg'
+	Plug 'preservim/vim-markdown'
 
 	Plug 'kana/vim-textobj-user'
 	" Plug 'kana/vim-textobj-indent'
@@ -113,7 +117,11 @@ if has_key(s:enabled, 'basic')
 	Plug 'jceb/vim-textobj-uri'
 
 
-	" Plug 'justinmk/vim-syntax-extra', { 'for': ['c', 'bison', 'flex', 'cpp'] }
+	if !has_key(s:enabled, 'syntax-extra')
+		Plug 'octol/vim-cpp-enhanced-highlight', { 'for': ['c', 'cpp'] }
+	else
+		Plug 'justinmk/vim-syntax-extra', { 'for': ['c', 'bison', 'flex', 'cpp'] }
+	endif
 	
 	if has('python3') || has('python')
 		Plug 'Yggdroot/LeaderF'
@@ -138,7 +146,7 @@ if has_key(s:enabled, 'basic')
 	let g:cpp_class_decl_highlight = 1
 	" let g:cpp_experimental_simple_template_highlight = 1
 	let g:cpp_concepts_highlight = 1
-	let g:cpp_no_function_highlight = 1
+	" let g:cpp_no_function_highlight = 1
 	let g:cpp_posix_standard = 1
 
 	let g:python_highlight_builtins = 1
@@ -157,7 +165,6 @@ end
 "----------------------------------------------------------------------
 if has_key(s:enabled, 'inter')
 	Plug 'vim-scripts/L9'
-	Plug 'honza/vim-snippets'
 	Plug 'xolox/vim-notes', { 'on': ['Note', 'SearchNotes', 'DeleteNotes', 'RecentNotes'] }
 	Plug 'skywind3000/vimoutliner', { 'for': 'votl' }
 	" Plug 'vimoutliner/vimoutliner', { 'for': 'votl' }
@@ -177,7 +184,7 @@ if has_key(s:enabled, 'inter')
 	
 	IncScript site/bundle/outliner.vim
 
-	if get(g:, 'bundle_usnip', 0) == 0 || (has('python3') == 0 && has('python') == 0)
+	if has_key(s:enabled, 'ultisnips') == 0 || (has('python3') == 0 && has('python') == 0)
 		Plug 'MarcWeber/vim-addon-mw-utils'
 		Plug 'tomtom/tlib_vim'
 		Plug 'garbas/vim-snipmate'
@@ -231,8 +238,6 @@ if has_key(s:enabled, 'opt')
 	Plug 'dyng/ctrlsf.vim'
 	Plug 'tpope/vim-speeddating'
 	Plug 'voldikss/vim-translator'
-	Plug 'mhartington/oceanic-next'
-	Plug 'soft-aesthetic/soft-era-vim'
 	" Plug 'tpope/vim-apathy'
 	" Plug 'mh21/errormarker.vim'
 
@@ -249,8 +254,8 @@ if has_key(s:enabled, 'opt')
 		let g:gutentags_modules += ['gtags_cscope']
 	endif
 	if len(g:gutentags_modules) > 0
-		Plug 'ludovicchabant/vim-gutentags'
-		" Plug 'skywind3000/vim-gutentags'
+		" Plug 'ludovicchabant/vim-gutentags'
+		Plug 'skywind3000/vim-gutentags'
 	endif
 
 	if s:uname == 'windows' 
@@ -273,8 +278,26 @@ endif
 
 
 "----------------------------------------------------------------------
-" optional 
+" modules 
 "----------------------------------------------------------------------
+
+" CoC
+if has_key(s:enabled, 'coc')
+	Plug 'neoclide/coc.nvim', {'branch': 'release'}
+	IncScript site/bundle/coc.vim
+endif
+
+" vim-lsp
+if has_key(s:enabled, 'lsp')
+	Plug 'prabirshrestha/vim-lsp'
+	Plug 'prabirshrestha/asyncomplete.vim'
+	Plug 'prabirshrestha/asyncomplete-lsp.vim'
+	Plug 'mattn/vim-lsp-settings'
+	Plug 'prabirshrestha/asyncomplete-buffer.vim'
+	Plug 'prabirshrestha/asyncomplete-tags.vim'
+	Plug 'jsit/asyncomplete-user.vim'
+	IncScript site/bundle/lsp.vim
+endif
 
 " deoplete
 if has_key(s:enabled, 'deoplete')
@@ -290,17 +313,38 @@ if has_key(s:enabled, 'deoplete')
 	IncScript site/bundle/deoplete.vim
 endif
 
-" vimwiki
-if has_key(s:enabled, 'vimwiki')
-	Plug 'vimwiki/vimwiki'
-	IncScript site/bundle/vimwiki.vim
-endif
-
 " echodoc
 if has_key(s:enabled, 'echodoc')
 	Plug 'Shougo/echodoc.vim'
 	set noshowmode
 	let g:echodoc#enable_at_startup = 1
+endif
+
+" lightline
+if has_key(s:enabled, 'lightline')
+	Plug 'itchyny/lightline.vim'
+	IncScript site/bundle/lightline.vim
+endif
+
+" ale
+if has_key(s:enabled, 'ale')
+	Plug 'w0rp/ale'
+	IncScript site/bundle/ale.vim
+endif
+
+if has_key(s:enabled, 'matchup')
+	Plug 'andymass/vim-matchup'
+	" vim-matchup conflicts with matchit, should disable matchit
+	let g:loaded_matchit = 1
+	IncScript site/bundle/matchup.vim
+else
+	runtime! macros/matchit.vim
+endif
+
+" vimwiki
+if has_key(s:enabled, 'vimwiki')
+	Plug 'vimwiki/vimwiki'
+	IncScript site/bundle/vimwiki.vim
 endif
 
 " airline
@@ -310,15 +354,9 @@ if has_key(s:enabled, 'airline')
 	IncScript site/bundle/airline.vim
 endif
 
-" lightline
-if has_key(s:enabled, 'lightline')
-	Plug 'itchyny/lightline.vim'
-	IncScript site/bundle/lightline.vim
-endif
-
-if has_key(s:enabled, 'coc')
-	Plug 'neoclide/coc.nvim', {'branch': 'release'}
-	IncScript site/bundle/coc.vim
+if has_key(s:enabled, 'floaterm')
+	Plug 'voldikss/vim-floaterm'
+	IncScript site/bundle/floaterm.vim
 endif
 
 if has_key(s:enabled, 'vim-doge')
@@ -343,12 +381,6 @@ if has_key(s:enabled, 'grammer')
 	map <space>rd <Plug>(grammarous-disable-rule)
 	map <space>rn <Plug>(grammarous-move-to-next-error)
 	map <space>rp <Plug>(grammarous-move-to-previous-error)
-endif
-
-
-if has_key(s:enabled, 'ale')
-	Plug 'w0rp/ale'
-	IncScript site/bundle/ale.vim
 endif
 
 if has_key(s:enabled, 'neomake')
@@ -419,17 +451,14 @@ if has_key(s:enabled, 'icons')
 	Plug 'istepura/vim-toolbar-icons-silk'
 endif
 
-if has_key(s:enabled, 'floaterm')
-	Plug 'voldikss/vim-floaterm'
-	IncScript site/bundle/floaterm.vim
-endif
-
 if has_key(s:enabled, 'tabnine')
 	Plug 'codota/tabnine-vim'
 	IncScript site/bundle/tabnine.vim
 endif
 
 if has_key(s:enabled, 'colors')
+	Plug 'mhartington/oceanic-next'
+	Plug 'soft-aesthetic/soft-era-vim'
 	Plug 'sonph/onehalf', {'rtp': 'vim/'}
 	Plug 'sainnhe/sonokai'
 	Plug 'chuling/ci_dark'
@@ -438,8 +467,12 @@ if has_key(s:enabled, 'colors')
 	Plug 'arzg/vim-colors-xcode'
     Plug 'wuelnerdotexe/vim-enfocado'
 	Plug 'kaicataldo/material.vim'
+	Plug 'cocopon/iceberg.vim'
+	Plug 'mcchrish/zenbones.nvim'
+	Plug 'rafi/awesome-vim-colorschemes'
 	Plug 'flazz/vim-colorschemes'
-	let g:enfocado_style = "neon"
+	Plug 'jaredgorski/SpaceCamp'
+	IncScript site/bundle/colors.vim
 endif
 
 if has_key(s:enabled, 'games')
@@ -470,6 +503,29 @@ if has_key(s:enabled, 'anyjump')
 	Plug 'pechorin/any-jump.vim'
 endif
 
+if has_key(s:enabled, 'notify')
+	if has('nvim')
+		Plug 'rcarriga/nvim-notify'
+	endif
+endif
+
+if has_key(s:enabled, 'snippets')
+	Plug 'honza/vim-snippets'
+endif
+
+if has_key(s:enabled, 'lh-cpp')
+	Plug 'LucHermitte/lh-vim-lib'
+	Plug 'LucHermitte/lh-style'
+	Plug 'LucHermitte/lh-tags'
+	Plug 'LucHermitte/lh-dev'
+	Plug 'LucHermitte/lh-brackets'
+	Plug 'LucHermitte/searchInRuntime'
+	Plug 'LucHermitte/mu-template'
+	Plug 'tomtom/stakeholders_vim'
+	Plug 'LucHermitte/alternate-lite'
+	Plug 'LucHermitte/lh-cpp'
+endif
+
 
 "----------------------------------------------------------------------
 " packages end
@@ -483,5 +539,17 @@ if exists('g:bundle_post')
 endif
 
 call plug#end()
+
+
+"----------------------------------------------------------------------
+" move s:home to the top of rtp
+"----------------------------------------------------------------------
+if get(g:, 'reorder_rtp', 0)
+	let rtps = split(&rtp, ',')
+	let rtps = [s:home] + rtps
+	let &rtp = ''
+	for n in rtps | exec 'set rtp+=' . fnameescape(n) | endfor
+endif
+
 
 

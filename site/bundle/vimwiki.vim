@@ -1,9 +1,15 @@
 
 let g:vimwiki_path = get(g:, 'vimwiki_path', '~/.vim/wiki')
 
-let g:vimwiki_list = [{'path': g:vimwiki_path, 'ext': '.wiki'}]
-" let g:vimwiki_list = [{'path': g:vimwiki_path, 'syntax':'markdown', 'ext': '.md'}]
+" let g:vimwiki_list = [{'path': g:vimwiki_path, 'ext': '.wiki'}]
+let g:vimwiki_list = [{'path': g:vimwiki_path, 'syntax':'markdown', 'ext': '.md'}]
 
+let g:vimwiki_ext2syntax = {}
+let g:vimwiki_global_ext = 0
+
+let g:vimwiki_conceallevel = 2
+let g:vimwiki_conceal_onechar_markers = 1
+let g:vimwiki_conceal_pre = 1
 
 
 "----------------------------------------------------------------------
@@ -80,10 +86,14 @@ function! s:local_setup()
 	nnoremap <buffer> <silent>K :call quickui#tools#clever_context('wk', g:vimwiki_k_context, {})<cr>
 endfunc
 
+function! s:fix_markdown()
+	" au BufNewFile,BufRead *.md setlocal filetype=markdown
+endfunc
 
 augroup VimwikiCustomizeEvent
 	au!
 	au FileType vimwiki call s:local_setup()
+	au VimEnter * call s:fix_markdown()
 augroup END
 
 

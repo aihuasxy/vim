@@ -93,3 +93,19 @@ if get(g:, 'asc_format_clang', 1) != 0
 endif
 
 
+"----------------------------------------------------------------------
+" context 
+"----------------------------------------------------------------------
+let b:quickui_context = [
+			\ ['Cpp&man', 'exec "Cppman " . expand("<cword>")'],
+			\ ["S&witch Header\t<SPC>fw", 'SwitchHeader vsplit'],
+			\ ]
+
+
+"----------------------------------------------------------------------
+" keymaps
+"----------------------------------------------------------------------
+nnoremap <buffer> <space>fw :SwitchHeader edit<cr>
+nnoremap <buffer> <space>fh :SwitchHeader vsplit<cr>
+
+

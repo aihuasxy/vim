@@ -1,47 +1,55 @@
+" vim: set noet fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
 "======================================================================
 "
 " core.vim - 
 "
 " Created by skywind on 2020/02/06
-" Last Modified: 2020/02/06 00:24:48
+" Last Modified: 2022/09/30 18:39
 "
 "======================================================================
-
-" vim: set noet fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :
 
 
 "----------------------------------------------------------------------
 " Global
 "----------------------------------------------------------------------
 let s:windows = has('win32') || has('win64') || has('win95') || has('win16')
+let g:asclib = get(g:, 'asclib', {})
 let g:asclib#core#windows = s:windows
 let g:asclib#core#has_nvim = has('nvim')
+let g:asclib#core#has_vim9 = v:version >= 900
+let g:asclib#core#has_popup = exists('*popup_create') && v:version >= 800
+let g:asclib#core#has_floating = has('nvim-0.4')
+let g:asclib#core#has_vim9script = (v:version >= 900) && has('vim9script')
 
 
 "----------------------------------------------------------------------
 " Get Instance
 "----------------------------------------------------------------------
-function! asclib#core#instance(mode)
-	if a:mode == 'buffer' || a:mode == 'buf' || a:mode == 'b:'
-		if !exists('b:__asclib_core_instance__')
-			let b:__asclib_core_instance__ = {}
-		endif
-		return b:__asclib_core_instance__
-	elseif a:mode == 'tab' || a:mode == 'tabpage' || a:mode == 't:'
-		if !exists('t:__asclib_core_instance__')
-			let t:__asclib_core_instance__ = {}
-		endif
-		return t:__asclib_core_instance__
-	elseif a:mode == 'win' || a:mode == 'window' || a:mode == 'w:'
-		if !exists('w:__asclib_core_instance__')
-			let w:__asclib_core_instance__ = {}
-		endif
-		return w:__asclib_core_instance__
-	endif
+function! asclib#core#instance(mode, name)
 	if !exists('s:__asclib_core_instance__')
 		let s:__asclib_core_instance__ = {}
 	endif
-	return s:__asclib_core_instance__
+	let hr = s:__asclib_core_instance__
+	if a:mode =~ '^b'
+		if !exists('b:__asclib_core_instance__')
+			let b:__asclib_core_instance__ = {}
+		endif
+		let hr = b:__asclib_core_instance__
+	elseif a:mode =~ '^t'
+		if !exists('t:__asclib_core_instance__')
+			let t:__asclib_core_instance__ = {}
+		endif
+		let hr = t:__asclib_core_instance__
+	elseif a:mode =~ '^w'
+		if !exists('w:__asclib_core_instance__')
+			let w:__asclib_core_instance__ = {}
+		endif
+		let hr = w:__asclib_core_instance__
+	endif
+	if !has_key(hr, a:name)
+		let hr[a:name] = {}
+	endif
+	return hr[a:name]
 endfunc
 
 
@@ -55,6 +63,19 @@ function! asclib#core#chdir(path)
 		let cmd = haslocaldir()? ((haslocaldir() == 1)? 'lcd' : 'tcd') : 'cd'
 	endif
 	silent execute cmd . ' '. fnameescape(a:path)
+endfunc
+
+
+"----------------------------------------------------------------------
+" CD command
+"----------------------------------------------------------------------
+function! asclib#core#getcd()
+	if has('nvim')
+		let cmd = haslocaldir()? 'lcd' : (haslocaldir(-1, 0)? 'tcd' : 'cd')
+	else
+		let cmd = haslocaldir()? ((haslocaldir() == 1)? 'lcd' : 'tcd') : 'cd'
+	endif
+	return cmd
 endfunc
 
 
@@ -74,14 +95,46 @@ endfunc
 
 
 "----------------------------------------------------------------------
+" Safe confirm
+"----------------------------------------------------------------------
+function! asclib#core#confirm(msg, choices, default)
+	call inputsave()
+	try
+		let hr = confirm(a:msg, choices, default)
+	catch /^Vim:Interrupt$/
+		let hr = 0
+	endtry
+	call inputrestore()
+	return hr
+endfunc
+
+
+"----------------------------------------------------------------------
+" Safe inputlist
+"----------------------------------------------------------------------
+function! asclib#core#inputlist(textlist)
+	call inputsave()
+	try
+		let hr = inputlist(a:textlist)
+	catch /^Vim:Interrupt$/
+		let hr = -1
+	endtry
+	call inputrestore()
+	return hr
+endfunc
+
+
+"----------------------------------------------------------------------
 " python simulate system() on window to prevent temporary window
 "----------------------------------------------------------------------
-function! s:python_system(cmd, version)
+function! s:python_system(cmd, version, ...)
+	let has_input = (a:0 > 0)? ((type(a:1) == type(''))? 1 : 0) : 0
+	let sinput = (has_input)? (a:1) : ''
 	if has('nvim')
-		let hr = system(a:cmd)
+		let hr = (!has_input)? system(a:cmd) : system(a:cmd, sinput)
 	elseif has('win32') || has('win64') || has('win95') || has('win16')
 		if a:version < 0 || (has('python3') == 0 && has('python2') == 0)
-			let hr = system(a:cmd)
+			let hr = (!has_input)? system(a:cmd) : system(a:cmd, sinput)
 			let s:shell_error = v:shell_error
 			return hr
 		elseif a:version == 3
@@ -98,7 +151,15 @@ function! s:python_system(cmd, version)
 		exec pyx . '__argv = {"args":vim.eval("a:cmd"), "shell":True}'
 		exec pyx . '__argv["stdout"] = subprocess.PIPE'
 		exec pyx . '__argv["stderr"] = subprocess.STDOUT'
+		if has_input
+			exec pyx . '__argv["stdin"] = subprocess.PIPE'
+		endif
 		exec pyx . '__pp = subprocess.Popen(**__argv)'
+		if has_input
+			exec pyx . '__si = vim.eval("sinput")'
+			exec pyx . '__pp.stdin.write(__si.encode("latin1"))'
+			exec pyx . '__pp.stdin.close()'
+		endif
 		exec pyx . '__return_text = __pp.stdout.read()'
 		exec pyx . '__pp.stdout.close()'
 		exec pyx . '__return_code = __pp.wait()'
@@ -107,7 +168,7 @@ function! s:python_system(cmd, version)
 		let s:shell_error = l:pc
 		return l:hr
 	else
-		let hr = system(a:cmd)
+		let hr = (!has_input)? system(a:cmd) : system(a:cmd, sinput)
 	endif
 	let s:shell_error = v:shell_error
 	return hr
@@ -115,17 +176,26 @@ endfunc
 
 
 "----------------------------------------------------------------------
-" call system: system(cmd [, cwd [, encoding]])
+" call system: system(cmd [, cwd [, encoding [, input]]])
 "----------------------------------------------------------------------
 function! asclib#core#system(cmd, ...)
 	let cwd = ((a:0) > 0)? (a:1) : ''
 	if cwd != ''
 		let previous = getcwd()
-		call asclib#core#chdir(cwd)
+		noautocmd call asclib#core#chdir(cwd)
 	endif
-	let hr = s:python_system(a:cmd, get(g:, 'asclib#core#python', 0))
+	if a:0 >= 3
+		if type(a:3) == type('')
+			let sinput = a:3
+		else
+			let sinput = (type(a:3) == type([]))? join(a:3, "\n") : {}
+		endif
+	else
+		let sinput = {}
+	endif
+	let hr = s:python_system(a:cmd, get(g:, 'asclib#core#python', 0), sinput)
 	if cwd != ''
-		call asclib#core#chdir(previous)
+		noautocmd call asclib#core#chdir(previous)
 	endif
 	let g:asclib#core#shell_error = s:shell_error
 	if (a:0) > 1 && has('iconv')
@@ -212,7 +282,7 @@ function! asclib#core#unix_system(cmd, ...)
 	let cwd = ((a:0) > 0)? (a:1) : ''
 	if cwd != ''
 		let previous = getcwd()
-		call asclib#core#chdir(cwd)
+		noautocmd call asclib#core#chdir(cwd)
 	endif
 	if s:windows == 0
 		let hr = system(a:cmd)
@@ -225,7 +295,7 @@ function! asclib#core#unix_system(cmd, ...)
 		endif
 	endif
 	if cwd != ''
-		call asclib#core#chdir(previous)
+		noautocmd call asclib#core#chdir(previous)
 	endif
 	if (a:0) > 1 && has('iconv')
 		let hr = iconv(hr, a:2, &encoding)
@@ -284,6 +354,49 @@ function! asclib#core#script_write(name, command, pause)
 		endif
 	endif
 	return tmpname
+endfunc
+
+
+"----------------------------------------------------------------------
+" safe shell escape for neovim
+"----------------------------------------------------------------------
+function! asclib#core#shellescape(path)
+	if s:windows == 0
+		return shellescape(a:path)
+	endif
+	let hr = shellescape(a:path)
+	if &ssl != 0
+		let parts = split(hr, "'", 1)
+		let hr = join(parts, '"')
+	endif
+	return hr
+endfunc
+
+
+"----------------------------------------------------------------------
+" start shell command in background: start(cmd [, cwd])
+"----------------------------------------------------------------------
+function! asclib#core#start(cmd, ...)
+	let cmd = a:cmd
+	let cwd = ((a:0) > 0)? (a:1) : ''
+	if cwd != ''
+		let previous = getcwd()
+		noautocmd call asclib#core#chdir(cwd)
+	endif
+	if s:windows == 0
+		call system(a:cmd . ' &')
+	else
+		let winsafe = get(g:, 'asclib#core#winsafe', 1)
+		if winsafe != 0
+			let ccc = asclib#core#script_write('asclib1', cmd, 0)
+			let cmd = asclib#core#shellescape(ccc)
+		endif
+		silent exec '!start /b cmd /C ' . cmd
+	endif
+	if cwd != ''
+		noautocmd call asclib#core#chdir(previous)
+	endif
+	return 0
 endfunc
 
 
@@ -381,6 +494,59 @@ function! asclib#core#extract(command)
 	let cmd = substitute(cmd, '^\s*\(.\{-}\)\s*$', '\1', '')
 	let cmd = substitute(cmd, '^@\s*', '', '')
 	return [cmd, opts]
+endfunc
+
+
+"----------------------------------------------------------------------
+" returns [opts, args]
+"----------------------------------------------------------------------
+function! asclib#core#getopt(args)
+	let opts = {}
+	let args = []
+	let mode = 0
+	for p in a:args
+		let p = substitute(p, '^\s*\(.\{-}\)\s*$', '\1', '')
+		if mode == 0
+			if p == '--'
+				let mode = 1
+			elseif p =~ '^[+-]'
+				let key = p
+				let val = ''
+				let pos = stridx(p, '=')
+				if pos >= 0
+					let key = strpart(p, 0, pos)
+					let val = strpart(p, pos + 1)
+				endif
+				let key = substitute(key, '^\s*\(.\{-}\)\s*$', '\1', '')
+				let val = substitute(val, '^\s*\(.\{-}\)\s*$', '\1', '')
+				if len(key) > 1
+					let opts[key] = val
+				endif
+			else
+				let args += [p]
+				let mode = 1
+			endif
+		else
+			let args += [p]
+		endif
+	endfor
+	return [opts, args]
+endfunc
+
+
+"----------------------------------------------------------------------
+" write script
+"----------------------------------------------------------------------
+function! asclib#core#writefile(lines, name)
+	if v:version >= 700
+		call writefile(a:lines, a:name)
+	else
+		exe 'redir ! > '.fnameescape(a:name)
+		for index in range(len(a:line))
+			silent echo a:line[index]
+		endfor
+		redir END
+	endif
 endfunc
 
 
@@ -499,5 +665,57 @@ function! asclib#core#switch(filename, opts)
 	return 1
 endfunc
 
+
+"----------------------------------------------------------------------
+" simulate time.time()
+"----------------------------------------------------------------------
+function! asclib#core#time()
+	return reltimefloat(reltime())
+endfunc
+
+
+"----------------------------------------------------------------------
+" clock since start
+"----------------------------------------------------------------------
+function! asclib#core#clock()
+	if !exists('s:__clock_start')
+		let s:__clock_start = asclib#core#time()
+	endif
+	return asclib#core#time() - s:__clock_start
+endfunc
+
+
+"----------------------------------------------------------------------
+" safe print
+"----------------------------------------------------------------------
+function! asclib#core#print(content, highlight, ...)
+	let saveshow = &showmode
+	set noshowmode
+    let wincols = &columns
+    let statusline = (&laststatus==1 && winnr('$')>1) || (&laststatus==2)
+    let reqspaces_lastline = (statusline || !&ruler) ? 12 : 29
+    let width = len(a:content)
+    let limit = wincols - reqspaces_lastline
+	let l:content = a:content
+	if width + 1 > limit
+		let l:content = strpart(l:content, 0, limit - 1)
+		let width = len(l:content)
+	endif
+	" prevent scrolling caused by multiple echo
+	let needredraw = (a:0 >= 1)? a:1 : 1
+	if needredraw != 0
+		redraw 
+	endif
+	if a:highlight != 0
+		echohl Type
+		echo l:content
+		echohl NONE
+	else
+		echo l:content
+	endif
+	if saveshow != 0
+		set showmode
+	endif
+endfunc
 
 

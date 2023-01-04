@@ -4,8 +4,8 @@
 "
 " Maintainer: skywind3000 (at) gmail.com, 2020-2021
 "
-" Last Modified: 2022/04/06 20:14
-" Verision: 1.9.3
+" Last Modified: 2022/11/29 04:55
+" Verision: 1.9.9
 "
 " For more information, please visit:
 " https://github.com/skywind3000/asynctasks.vim
@@ -70,7 +70,7 @@ let g:asynctasks_term_rows = get(g:, 'asynctasks_term_rows', '')
 let g:asynctasks_term_focus = get(g:, 'asynctasks_term_focus', 1)
 
 " make internal terminal tab reusable
-let g:asynctasks_term_reuse = get(g:, 'asynctasks_term_reuse', 0)
+let g:asynctasks_term_reuse = get(g:, 'asynctasks_term_reuse', 1)
 
 " whether set bufhidden to 'hide' in terminal window
 let g:asynctasks_term_hidden = get(g:, 'asynctasks_term_hidden', 0)
@@ -235,48 +235,6 @@ function! s:readini(source)
 		endif
 	endfor
 	return sections
-endfunc
-
-" returns nearest parent directory contains one of the markers
-function! s:find_root(name, markers, strict)
-	let name = fnamemodify((a:name != '')? a:name : bufname('%'), ':p')
-	let finding = ''
-	" iterate all markers
-	for marker in a:markers
-		if marker != ''
-			" search as a file
-			let x = findfile(marker, name . '/;')
-			let x = (x == '')? '' : fnamemodify(x, ':p:h')
-			" search as a directory
-			let y = finddir(marker, name . '/;')
-			let y = (y == '')? '' : fnamemodify(y, ':p:h:h')
-			" which one is the nearest directory ?
-			let z = (strchars(x) > strchars(y))? x : y
-			" keep the nearest one in finding
-			let finding = (strchars(z) > strchars(finding))? z : finding
-		endif
-	endfor
-	if finding == ''
-		let path = (a:strict == 0)? fnamemodify(name, ':h') : ''
-	else
-		let path = fnamemodify(finding, ':p')
-	endif
-	if has('win32') || has('win16') || has('win64') || has('win95')
-		let path = substitute(path, '\/', '\', 'g')
-	endif
-	if path =~ '[\/\\]$'
-		let path = fnamemodify(path, ':h')
-	endif
-	return path
-endfunc
-
-" find project root
-function! s:project_root(name, strict)
-	let markers = ['.project', '.git', '.hg', '.svn', '.root']
-	if exists('g:asyncrun_rootmarks')
-		let markers = g:asyncrun_rootmarks
-	endif
-	return s:find_root(a:name, markers, a:strict)
 endfunc
 
 " change directory in a proper way
@@ -659,7 +617,6 @@ function! s:collect_rtp_config() abort
 		endif
 	endfor
 	let config = deepcopy(s:private.rtp.ini)
-	call s:config_merge(config, g:asynctasks_tasks, '<script>', 'script')
 	let s:private.rtp.config = config
 	return s:private.rtp.config
 endfunc
@@ -698,6 +655,22 @@ endfunc
 
 
 "----------------------------------------------------------------------
+" script level config
+"----------------------------------------------------------------------
+function! s:compose_script_config()
+	let config = {}
+	for prefix in ['g:', 't:', 'w:', 'b:']
+		let varname = prefix . 'asynctasks_tasks'
+		if exists(varname)
+			let cc = eval(varname)
+			call s:config_merge(config, cc, '<script>', 'script')
+		endif
+	endfor
+	return config
+endfunc
+
+
+"----------------------------------------------------------------------
 " fetch all config
 "----------------------------------------------------------------------
 function! asynctasks#collect_config(path, force)
@@ -706,8 +679,9 @@ function! asynctasks#collect_config(path, force)
 	let s:error = ''
 	let c1 = s:compose_rtp_config(a:force)
 	let c2 = s:compose_local_config(path)
+	let c3 = s:compose_script_config()
 	let tasks = {'config':{}, 'names':{}, 'avail':[]}
-	for cc in [c1, c2]
+	for cc in [c1, c2, c3]
 		call s:config_merge(tasks.config, cc, '', '')
 	endfor
 	let avail = []
@@ -741,14 +715,6 @@ function! asynctasks#collect_config(path, force)
 	let s:private.tasks = tasks
 	" echo s:private.tasks.environ
 	return (s:index == 0)? 0 : -1
-endfunc
-
-
-"----------------------------------------------------------------------
-" get project root
-"----------------------------------------------------------------------
-function! asynctasks#project_root(name, ...)
-	return s:project_root(a:name, (a:0 == 0)? 0 : (a:1))
 endfunc
 
 
@@ -1129,6 +1095,17 @@ function! s:handle_environ(text)
 			return shadow[key]
 		endif
 	endif
+	for scope in ['b:', 'w:', 't:']
+		let dictname = scope . 'asynctasks_environ'
+		if exists(dictname)
+			let dictvar = eval(dictname)
+			if type(dictvar) == type({})
+				if has_key(dictvar, key)
+					return dictvar[key]
+				endif
+			endif
+		endif
+	endfor
 	if has_key(g:asynctasks_environ, key) == 0
 		if has_key(s:private.tasks.environ, key) == 0
 			if s:strip(sep) == ''
@@ -1141,6 +1118,9 @@ function! s:handle_environ(text)
 	endif
 	let t = get(s:private.tasks.environ, key, '')
 	let t = get(g:asynctasks_environ, key, t)
+	if type(t) != type('')
+		return printf('%s', t)
+	endif
 	return t
 endfunc
 
@@ -1299,7 +1279,11 @@ function! s:task_option(task)
 	if has_key(opts, 'safe') == 0
 		let opts.safe = g:asynctasks_term_safe
 	endif
-	let opts.reuse = g:asynctasks_term_reuse
+	if g:asynctasks_term_reuse >= 0
+		let opts.reuse = g:asynctasks_term_reuse
+	else
+		let opts.reuse = (get(opts, 'pos', '') ==? 'tab')? 0 : 1
+	endif
 	if g:asynctasks_term_hidden != 0
 		let opts.hidden = 1
 	endif
@@ -1984,6 +1968,7 @@ function! asynctasks#cmd(bang, args, ...)
 		call s:task_macro(1)
 		return 0
 	elseif args ==# '-Z'
+		silent! exec "AsyncRun -mode=load"
 		return 0
 	endif
 	let [args, opts] = s:ExtractOpt(args)
@@ -2290,6 +2275,140 @@ function! asynctasks#timing()
 	echo s:private.rtp.config
 	return tt
 endfunc
+
+
+"----------------------------------------------------------------------
+" internal variables
+"----------------------------------------------------------------------
+function! asynctasks#environ()
+	call asynctasks#collect_config('.', 1)
+	let hr = {}
+	for key in keys(s:private.tasks.environ)
+		let hr[key] = s:private.tasks.environ[key]
+	endfor
+	for scope in ['g:', 't:', 'w:', 'b:']
+		let name = scope . 'asynctasks_environ'
+		if exists(name)
+			let environ = eval(name)
+			for key in keys(environ)
+				let hr[key] = environ[key]
+			endfor
+		endif
+	endfor
+	return hr
+endfunc
+
+
+"----------------------------------------------------------------------
+" AsyncTaskEnviron 
+"----------------------------------------------------------------------
+function! s:task_environ(bang, ...)
+	let args = a:000
+	let head = (len(args) > 0)? args[0] : ''
+	let environ = g:asynctasks_environ
+	for scope in ['b', 't', 'w', 'g']
+		let pattern = '^-' . scope
+		let name = scope . ':' . 'asynctasks_environ'
+		if head =~ pattern
+			if !exists(name)
+				exec 'let ' . name . ' = {}'
+			endif
+			let environ = eval(name)
+			let args = slice(args, 1)
+		endif
+	endfor
+	let nargs = len(args)
+	if nargs == 0
+		let rows = []
+		let rows += [['Variable', 'Value']]
+		let highmap = {}
+		let index = 0
+		let highmap['0,0'] = 'Title'
+		let highmap['0,1'] = 'Title'
+		let names = keys(environ)
+		call sort(names)
+		for name in names
+			let key = printf('%s', name)
+			let value = printf('%s', environ[name])
+			let index += 1
+			let rows += [[key, value]]
+			let highmap[index . ',0'] = 'Keyword'
+			let highmap[index . ',1'] = 'Number'
+		endfor
+		call s:print_table(rows, highmap)
+	elseif nargs == 1
+		let name = args[0]
+		if name == '-h'
+			call s:environ_help()
+		elseif a:bang == ''
+			if has_key(environ, name)
+				echohl Keyword
+				echon name
+				echohl Comment
+				echon '='
+				echohl Number
+				echon environ[name]
+				echohl None
+			else
+				let t = "invalid name '" . name . "'"
+				call s:errmsg(t . ', use AsyncTaskEnviron -h for help')
+			endif
+		else
+			if has_key(environ, name)
+				unlet environ[name]
+				echo "variable '" . name . "' has been removed"
+			else
+				let t = "invalid name '" . name . "'"
+				call s:errmsg(t . ', use AsyncTaskEnviron -h for help')
+			endif
+		endif
+	elseif nargs == 2
+		let name = args[0]
+		let environ[name] = args[1]
+		echohl Statement
+		echon 'assigned '
+		echohl Keyword
+		echon name
+		echohl Comment
+		echon '='
+		echohl Number
+		echon environ[name]
+		echohl None
+	else
+		echom args
+		call s:errmsg('too many arguments, use AsyncTaskEnviron -h for help')
+	endif
+	return 0
+endfunc
+
+function! s:environ_help()
+	echo 'usage:  :AsyncTaskEnviron <operation>'
+	let t = '    :AsyncTaskEnviron'
+	echo 'operations:'
+	echo t . '                    - list all variables'
+	echo t . ' <varname>          - print value of a variable'
+	echo t . ' <varname> <value>  - assign value to a variable'
+	echo t . '! <varname>         - remove a variable'
+endfunc
+
+function! s:complete_environ(ArgLead, CmdLine, CursorPos)
+	let candidate = []
+	if a:ArgLead == '-'
+		let candidate = ['-h']
+	else
+		let names = keys(g:asynctasks_environ)
+		call sort(names)
+		for name in names
+			if stridx(name, a:ArgLead) == 0
+				let candidate += [name]
+			endif
+		endfor
+	endif
+	return candidate
+endfunc
+
+command! -bang -nargs=* -complete=customlist,s:complete_environ 
+		\ AsyncTaskEnviron  call s:task_environ('<bang>', <f-args>)
 
 
 

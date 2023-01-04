@@ -1,5 +1,47 @@
-" using new parser
+"======================================================================
+"
+" snipmate.vim - 
+"
+" Created by skywind on 2022/08/30
+" Last Modified: 2022/08/30 16:51:03
+"
+"======================================================================
+
+
+"----------------------------------------------------------------------
+" initialize
+"----------------------------------------------------------------------
 let g:snipMate = { 'snippet_version' : 1 }
+let g:snipMate.dirs = [asclib#path#runtime('site')]
+let g:snipMate.description_in_completion = 1
+
+let g:snips_author = 'skywind'
+
+
+"----------------------------------------------------------------------
+" snipmate enhancement: allow extra paths in g:snipMate.dirs
+"----------------------------------------------------------------------
+call module#snipmate#active()
+
+
+"----------------------------------------------------------------------
+" edit snip
+"----------------------------------------------------------------------
+function! s:SnipMateEdit()
+	let ft = &ft
+	let test = asclib#path#runtime('site/snippets')
+	let test = asclib#path#normalize(test)
+	if isdirectory(test)
+		let fn = printf('%s/%s.snippets', test, &ft)
+		let cmd = 'FileSwitch -switch=useopen,usetab,auto ' . fnameescape(fn)
+		exec cmd
+	else
+		call asclib#core#errmsg('invalid path: ' . test)
+	endif
+endfunc
+
+command! -nargs=0 SnipMateEdit call s:SnipMateEdit()
+
 
 if 0
 	imap <expr> <m-e> pumvisible() ? '<c-g>u<Plug>snipMateTrigger' : '<Plug>snipMateTrigger'
@@ -15,4 +57,6 @@ elseif 1
 	smap <m-E> <Plug>snipMateBack
 	imap <expr> <m-m> pumvisible() ? '<c-g>u<Plug>snipMateShow' : '<Plug>snipMateShow'
 endif
+
+
 

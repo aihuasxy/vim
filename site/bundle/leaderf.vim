@@ -92,7 +92,7 @@ nnoremap <space>fb :<c-u>Leaderf buffer<cr>
 nnoremap <space>fm :<c-u>Leaderf mru<cr>
 nnoremap <space>fg :<c-u>Leaderf gtags<cr>
 nnoremap <space>fr :<c-u>Leaderf rg<cr>
-nnoremap <space>fw :<c-u>Leaderf window<cr>
+" nnoremap <space>fw :<c-u>Leaderf window<cr>
 nnoremap <space>fn :<c-u>Leaderf function<cr>
 nnoremap <space>ft :<c-u>Leaderf tag<cr>
 nnoremap <space>fu :<c-u>Leaderf bufTag<cr>

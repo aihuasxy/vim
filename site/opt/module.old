@@ -1,3 +1,4 @@
+" vim: set ts=4 sw=4 tw=78 noet ft=vim :
 "======================================================================
 "
 " module.vim - 
@@ -7,7 +8,6 @@
 "
 "======================================================================
 
-" vim: set ts=4 sw=4 tw=78 noet :
 
 
 "----------------------------------------------------------------------
@@ -24,12 +24,13 @@ let s:module_load = []
 " inter-modules
 "----------------------------------------------------------------------
 let g:module_plugin = []
+let s:module_loaded = {}
 
 
 "----------------------------------------------------------------------
-" init module
+" load module
 "----------------------------------------------------------------------
-function! s:module_load(name)
+function! module#load(name)
 	let name = a:name
 	let script = s:module_home . '/' . name . '.vim'
 	let entry = 'module#' . name . '#init'
@@ -47,7 +48,31 @@ function! s:module_load(name)
 		return -2
 	endif
 	call call(entry, [])
+	let s:module_loaded[name] = 1
 	return 0
+endfunc
+
+
+"----------------------------------------------------------------------
+" ensure loaded
+"----------------------------------------------------------------------
+function! module#ensure(name)
+	if get(s:module_loaded, a:name, 0) == 0
+		call module#load(a:name)
+	endif
+endfunc
+
+
+"----------------------------------------------------------------------
+" check module existence
+"----------------------------------------------------------------------
+function! module#has(name)
+	let name = a:name
+	let script = s:module_home . '/' . name . '.vim'
+	if !filereadable(script)
+		return 0
+	endif
+	return 1
 endfunc
 
 
@@ -68,7 +93,11 @@ function! module#init()
 		endif
 	endfor
 	if exists('g:module_load') == 0
-		let s:module_load = deepcopy(s:module_list)
+		for name in s:module_list
+			if name !~ '^__'
+				let s:module_load += [name]
+			endif
+		endfor
 	else
 		let avail = {}
 		for name in s:module_list
@@ -84,7 +113,8 @@ function! module#init()
 			endif
 		endfor
 	endif
-	command! -nargs=1 ModuleLoad call s:module_load(<f-args>)
+	command! -nargs=1 ModuleLoad call module#load(<f-args>)
+	command! -nargs=1 ModuleEnsure call module#ensure(<f-args>)
 	for name in s:module_load
 		exec 'ModuleLoad ' . fnameescape(name)
 	endfor

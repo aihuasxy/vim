@@ -1,16 +1,13 @@
 let s:home = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 command! -nargs=1 IncScript exec 'so '. fnameescape(s:home."/<args>")
-exec 'set rtp+='.s:home
+exec 'set rtp+='. fnameescape(s:home)
 exec 'set rtp+=~/.vim'
 
 
 IncScript init/viminit.vim
-IncScript init/vimmake.vim
-
-VimmakeKeymap
-
 IncScript init/config.vim
 
+IncScript init/vimmake.vim
 IncScript init/ignores.vim
 IncScript init/tools.vim
 IncScript init/keymaps.vim
@@ -37,6 +34,5 @@ if filereadable(name)
 	exec 'source ' . fnameescape(name)
 endif
 
-call module#init()
 
 

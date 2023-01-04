@@ -41,3 +41,15 @@ if get(g:, 'quickui_color_pmenu', 0) == 0
 endif
 
 
+"----------------------------------------------------------------------
+" lightline theme
+"----------------------------------------------------------------------
+if exists('g:lightline')
+	if !has_key(g:lightline, 'colorscheme')
+		let g:lightline.colorscheme = 'nord'
+	elseif g:lightline.colorscheme == ''
+		let g:lightline.colorscheme = 'nord'
+	endif
+endif
+
+

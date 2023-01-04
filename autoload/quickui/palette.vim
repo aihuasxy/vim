@@ -3,7 +3,7 @@
 " palette.vim - 
 "
 " Created by skywind on 2021/12/23
-" Last Modified: 2021/12/23 13:29:47
+" Last Modified: 2022/09/25 01:31
 "
 "======================================================================
 
@@ -407,7 +407,7 @@ function! quickui#palette#hex2rgb(hex)
 		let g = and(cc / 0x100, 0xff)
 		let b = and(cc, 0xff)
 	elseif head == '('
-		let head = strpart(a:name, 1, len(a:name) - 2)
+		let head = strpart(a:hex, 1, len(a:hex) - 2)
 		let part = split(head, ',')
 		let r = str2nr(part[0])
 		let g = str2nr(part[1])
@@ -431,15 +431,8 @@ endfunc
 "----------------------------------------------------------------------
 function! quickui#palette#name2index(name, ...)
 	let head = strpart(a:name, 0, 1)
-	if head == '#'
+	if head == '#' || head == '('
 		return quickui#palette#hex2index(a:name)
-	elseif head == '('
-		let head = strpart(a:name, 1, len(a:name) - 2)
-		let part = split(head, ',')
-		let r = str2nr(part[0])
-		let g = str2nr(part[1])
-		let b = str2nr(part[2])
-		return quickui#palette#match(r, g, b)
 	else
 		let default = (a:0 < 1)? 0 : (a:1)
 		let name = tolower(a:name)
@@ -465,5 +458,40 @@ function! quickui#palette#timing()
 	let tt = reltime(ts)
 	return reltimestr(tt)
 endfunc
+
+
+"----------------------------------------------------------------------
+" optimize if possible: achieve 40x times faster
+"----------------------------------------------------------------------
+if has('vim9script')
+	import './palette9.vim'
+	function! s:bestfit_color(r, g, b, limit)
+		return s:palette9.BestfitColor(a:r, a:g, a:b, a:limit)
+	endfunc
+	function! quickui#palette#bestfit8(r, g, b)
+		return s:palette9.Bestfit8(a:r, a:g, a:b)
+	endfunc
+	function! quickui#palette#bestfit16(r, g, b)
+		return s:palette9.Bestfit16(a:r, a:g, a:b)
+	endfunc
+	function! quickui#palette#bestfit256(r, g, b)
+		return s:palette9.Bestfit256(a:r, a:g, a:b)
+	endfunc
+	function! quickui#palette#match(r, g, b)
+		return s:palette9.Match(a:r, a:g, a:b, g:quickui#palette#number)
+	endfunc
+	function! quickui#palette#hex2rgb(hex)
+		return s:palette9.Hex2RGB(a:hex)
+	endfunc
+	function! quickui#palette#hex2index(hex)
+		return s:palette9.Hex2Index(a:hex)
+	endfunc
+	function! quickui#palette#name2index(name, ...)
+		let default = (a:0 == 0)? 0 : (a:1)
+		return s:palette9.Name2Index(a:name, default)
+	endfunc
+endif
+
+
 
 

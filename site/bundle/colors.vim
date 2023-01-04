@@ -1,12 +1,11 @@
 "======================================================================
 "
-" speedlib.vim - 
+" colors.vim - 
 "
-" Created by skywind on 2021/12/28
-" Last Modified: 2021/12/28 12:21:20
+" Created by skywind on 2022/10/09
+" Last Modified: 2022/10/09 02:29:36
 "
 "======================================================================
 
-" vim: set ts=4 sw=4 tw=78 noet :
-
+let g:enfocado_style = "neon"
 

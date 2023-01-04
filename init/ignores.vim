@@ -1,13 +1,14 @@
 set suffixes=.bak,~,.o,.info,.swp,.obj,.pyc,.pyo,.egg-info,.class
+set suffixes+=.exe,.class,.jpg,.png,.webp
 
 set wildignore=*.o,*.obj,*~,*.exe,*.a,*.pdb,*.lib "stuff to ignore when tab completing
 set wildignore+=*.so,*.dll,*.swp,*.egg,*.jar,*.class,*.pyc,*.pyo,*.bin,*.dex
 set wildignore+=*.zip,*.7z,*.rar,*.gz,*.tar,*.gzip,*.bz2,*.tgz,*.xz    " MacOSX/Linux
 set wildignore+=*DS_Store*,*.ipch
 set wildignore+=*.gem
-set wildignore+=*.png,*.jpg,*.gif,*.bmp,*.tga,*.pcx,*.ppm,*.img,*.iso
+set wildignore+=*.png,*.jpg,*.gif,*.bmp,*.tga,*.pcx,*.ppm,*.img,*.iso,*.webp
 set wildignore+=*.so,*.swp,*.zip,*/.Trash/**,*.pdf,*.dmg,*/.rbenv/**
-set wildignore+=*/.nx/**,*.app,*.git,.git
+set wildignore+=*/.nx/**,*.app,*.git,.git,*/__pycache__/**,__pycache__
 set wildignore+=*.wav,*.mp3,*.ogg,*.pcm
 set wildignore+=*.mht,*.suo,*.sdf,*.jnlp
 set wildignore+=*.chm,*.epub,*.pdf,*.mobi,*.ttf

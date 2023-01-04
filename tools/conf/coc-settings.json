@@ -3,6 +3,8 @@
 		"snippets"
 	],
 
+	"suggest.autoTrigger": "always",
+	"suggest.noselect": true,
 
 	"coc.source.coc-snippets.enable": true,
 	"suggest.enablePreview": true,

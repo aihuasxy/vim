@@ -133,7 +133,8 @@ augroup AscUnixGroup
 	au BufNewFile,BufRead *.vl setlocal filetype=verilog
 	au BufNewFile,BufRead *.bxrc setlocal filetype=bxrc
 	au BufNewFile,BufRead *.odin setlocal filetype=odin
-	au BufNewFile,BufRead *.md setlocal filetype=markdown
+	" au BufNewFile,BufRead *.md setlocal filetype=markdown
+	au BufNewFile,BufRead *.lua.rename setlocal filetype=lua
 	au FileType lisp setlocal ts=8 sts=2 sw=2 et
 	au FileType scala setlocal sts=4 sw=4 noet
 	au FileType haskell setlocal et

@@ -118,7 +118,7 @@ function! vimmake#grep(text, cwd)
 	endif
 endfunc
 
-function! s:Cmd_GrepCode(bang, what, ...)
+function! s:GrepCode(bang, what, ...)
 	let l:cwd = (a:0 == 0)? fnamemodify(expand('%'), ':h') : a:1
 	if a:bang != ''
 		let l:cwd = asyncrun#get_root(l:cwd)
@@ -137,7 +137,7 @@ function! s:Cmd_GrepCode(bang, what, ...)
 	endif
 endfunc
 
-command! -bang -nargs=+ GrepCode call s:Cmd_GrepCode('<bang>', <f-args>)
+command! -bang -nargs=+ GrepCode call s:GrepCode('<bang>', <f-args>)
 
 
 "----------------------------------------------------------------------
@@ -257,79 +257,6 @@ function! s:Cmd_VimScope(bang, what, name)
 endfunc
 
 command! -nargs=* -bang VimScope call s:Cmd_VimScope("<bang>", <f-args>)
-
-
-"----------------------------------------------------------------------
-" Keymap Setup
-"----------------------------------------------------------------------
-function! vimmake#keymap()
-	noremap <silent><F5> :AsyncTask file-run<cr>
-	noremap <silent><F6> :AsyncTask make<cr>
-	noremap <silent><F7> :AsyncTask emake<cr>
-	noremap <silent><F8> :AsyncTask emake-exe<cr>
-	noremap <silent><F9> :AsyncTask file-build<cr>
-	noremap <silent><F10> :call asyncrun#quickfix_toggle(6)<cr>
-	noremap <silent><s-f5> :AsyncTask project-run<cr>
-	noremap <silent><s-f6> :AsyncTask project-test<cr>
-	noremap <silent><s-f7> :AsyncTask project-init<cr>
-	noremap <silent><s-f8> :AsyncTask project-install<cr>
-	noremap <silent><s-f9> :AsyncTask project-build<cr>
-
-	inoremap <silent><F5> <ESC>:AsyncTask file-run<cr>
-	inoremap <silent><F6> <ESC>:AsyncTask make<cr>
-	inoremap <silent><F7> <ESC>:AsyncTask emake<cr>
-	inoremap <silent><F8> <ESC>:AsyncTask emake-exe<cr>
-	inoremap <silent><F9> <ESC>:AsyncTask file-build<cr>
-	inoremap <silent><F10> <ESC>:call asyncrun#quickfix_toggle(6)<cr>
-	inoremap <silent><s-f5> <ESC>:AsyncTask project-run<cr>
-	inoremap <silent><s-f6> <ESC>:AsyncTask project-test<cr>
-	inoremap <silent><s-f7> <ESC>:AsyncTask project-init<cr>
-	inoremap <silent><s-f8> <ESC>:AsyncTask project-install<cr>
-	inoremap <silent><s-f9> <ESC>:AsyncTask project-build<cr>
-
-	noremap <silent><f1> :AsyncTask task-f1<cr>
-	noremap <silent><f2> :AsyncTask task-f2<cr>
-	noremap <silent><f3> :AsyncTask task-f3<cr>
-	noremap <silent><f4> :AsyncTask task-f4<cr>
-	inoremap <silent><f1> <ESC>:AsyncTask task-shift-f1<cr>
-	inoremap <silent><f2> <ESC>:AsyncTask task-shift-f2<cr>
-	inoremap <silent><f3> <ESC>:AsyncTask task-shift-f3<cr>
-	inoremap <silent><f4> <ESC>:AsyncTask task-shift-f4<cr>
-
-	" set keymap to GrepCode
-	noremap <silent><leader>cq :VimStop<cr>
-	noremap <silent><leader>cQ :VimStop!<cr>
-	noremap <silent><leader>cv :GrepCode <C-R>=expand("<cword>")<cr><cr>
-	noremap <silent><leader>cx :GrepCode! <C-R>=expand("<cword>")<cr><cr>
-
-	" set keymap to cscope
-	if has("cscope")
-		noremap <silent> <leader>cs :VimScope s <C-R><C-W><CR>
-		noremap <silent> <leader>cg :VimScope g <C-R><C-W><CR>
-		noremap <silent> <leader>cc :VimScope c <C-R><C-W><CR>
-		noremap <silent> <leader>ct :VimScope t <C-R><C-W><CR>
-		noremap <silent> <leader>ce :VimScope e <C-R><C-W><CR>
-		noremap <silent> <leader>cd :VimScope d <C-R><C-W><CR>
-		noremap <silent> <leader>ca :VimScope a <C-R><C-W><CR>
-		noremap <silent> <leader>cf :VimScope f <C-R><C-W><CR>
-		noremap <silent> <leader>ci :VimScope i <C-R><C-W><CR>
-		if v:version >= 800 || has('patch-7.4.2038')
-			set cscopequickfix=s+,c+,d+,i+,t+,e+,g+,f+,a+
-		else
-			set cscopequickfix=s+,c+,d+,i+,t+,e+,g+,f+
-		endif
-	endif
-
-	" cscope update
-	noremap <leader>cb1 :call vimmake#update_tags('', 'ctags', '.tags')<cr>
-	noremap <leader>cb2 :call vimmake#update_tags('', 'cs', '.cscope')<cr>
-	noremap <leader>cb3 :call vimmake#update_tags('!', 'ctags', '.tags')<cr>
-	noremap <leader>cb4 :call vimmake#update_tags('!', 'cs', '.cscope')<cr>
-	noremap <leader>cb5 :call vimmake#update_tags('', 'py', '.cscopy')<cr>
-	noremap <leader>cb6 :call vimmake#update_tags('!', 'py', '.cscopy')<cr>
-endfunc
-
-command! -nargs=0 VimmakeKeymap call vimmake#keymap()
 
 
 "----------------------------------------------------------------------

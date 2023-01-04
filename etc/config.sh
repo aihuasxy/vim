@@ -58,6 +58,11 @@ if [ -d "$HOME/.vim/vim/tools/utils" ]; then
 	export PATH="$HOME/.vim/vim/tools/utils:$PATH"
 fi
 
+# setup for rust
+if [ -f "$HOME/.cargo/env" ]; then
+	source "$HOME/.cargo/env"
+fi
+
 # setup for local rust
 if [ -d "$HOME/.cargo/bin" ]; then
 	export PATH="$HOME/.cargo/bin:$PATH"

@@ -70,8 +70,18 @@ function! MenuHelp_GrepCode()
 	endif
 endfunc
 
+function! MenuHelp_Cppman()
+	let t = 'Find word in Cppman:'
+	let t = quickui#input#open(t, expand('<cword>'), 'cppman')
+	let t = substitute(t, '^\s*\(.\{-}\)[\s\r\n]*$', '\1', '')
+	redraw | echo "" | redraw
+	if strlen(t) > 0
+		exec 'Cppman' t
+	endif
+endfunc
+
 function! MenuHelp_Proxy(enable)
-	let $HTTP_PROXY = (a:enable)? 'socks5://localhost:1080' : ''
+	let $HTTP_PROXY = (a:enable)? 'socks5h://localhost:1080' : ''
 	let $HTTPS_PROXY = $HTTP_PROXY
 	let $ALL_PROXY = $HTTP_PROXY
 endfunc

@@ -14,8 +14,9 @@
 " list buffer ids
 "----------------------------------------------------------------------
 function! s:buffer_list()
+    let l:ls_cli = get(g:, 'quickui_buffer_list_cli', 'ls t')
     redir => buflist
-    silent! ls
+    silent execute l:ls_cli
     redir END
     let bids = []
     for curline in split(buflist, '\n')
@@ -431,7 +432,7 @@ function! quickui#tools#clever_context(name, content, opts)
 	let opts.keep_name = a:name
 	let opts.callback = function('s:remember_cursor_context')
 	let content = quickui#context#reduce_items(a:content)
-	call quickui#context#open(content, opts)
+	call quickui#context#open_nested(content, opts)
 endfunc
 
 function! quickui#tools#clever_listbox(name, content, opts)

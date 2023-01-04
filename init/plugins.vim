@@ -158,9 +158,9 @@ let g:vim_json_conceal = 0
 
 
 "----------------------------------------------------------------------
-" asyncrun / vimmake 
+" asyncrun / vimmake
 "----------------------------------------------------------------------
-let g:asyncrun_timer = 64
+let g:asyncrun_timer = 200
 let s:python = executable('python3')? 'python3' : 'python'
 let s:script = fnamemodify(resolve(expand('<sfile>:p')), ':h:h')
 let s:launch = s:script . '/lib/launch.py'
@@ -183,7 +183,6 @@ if executable('rg')
 endif
 
 
-
 "----------------------------------------------------------------------
 " asynctasks
 "----------------------------------------------------------------------
@@ -193,6 +192,7 @@ let g:asynctasks_term_pos = (s:windows && s:gui)? 'external' : 'TAB'
 let g:asynctasks_template = 0
 let g:asynctasks_confirm = 0
 let g:asynctasks_template = s:home . '/tools/conf/template.ini'
+let g:asynctasks_environ = get(g:, 'asynctasks_environ', {})
 " let g:asynctasks_rtp_config = 'etc/tasks.ini'
 
 
@@ -256,6 +256,7 @@ let g:gutentags_ctags_extra_args += ['--c++-kinds=+px']
 let g:gutentags_ctags_extra_args += ['--c-kinds=+px']
 
 let g:gutentags_auto_add_gtags_cscope = 0
+let g:gutentags_define_advanced_commands = 1
 
 " let g:gutentags_define_advanced_commands = 1
 

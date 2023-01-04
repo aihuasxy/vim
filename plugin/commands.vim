@@ -3,24 +3,34 @@
 " commands.vim - 
 "
 " Created by skywind on 2021/12/22
-" Last Modified: 2021/12/22 22:18:11
+" Last Modified: 2022/09/30 03:36
 "
 "======================================================================
 
 
 "----------------------------------------------------------------------
 " Follow switchbuf option to open a file
+" usage: 
+"     :FileSwitch abc.txt
+"     :FileSwitch -switch=useopen,usetab,auto abc.txt
+"     :FileSwitch -switch=useopen -mods=botright abc.txt
 "----------------------------------------------------------------------
-command! -nargs=+ FileSwitch call s:FileSwitch(<f-args>)
-function! s:FileSwitch(...)
-	call asclib#utils#file_switch(a:000)
+command! -nargs=+ -complete=file FileSwitch 
+	\ call s:FileSwitch('<mods>', [<f-args>])
+function! s:FileSwitch(mods, args)
+	let args = deepcopy(a:args)
+	if a:mods != ''
+		let args = ['-mods=' . a:mods] + args
+	endif
+	call asclib#utils#file_switch(args)
 endfunc
 
 
 "----------------------------------------------------------------------
 " Switch cpp/h file
 "----------------------------------------------------------------------
-command! -nargs=? SwitchHeader call module#cpp#switch_header(<f-args>) 
+command! -nargs=* -complete=customlist,module#alternative#complete
+	\ SwitchHeader call module#alternative#switch('<mods>', [<f-args>])
 
 
 "----------------------------------------------------------------------
@@ -186,4 +196,41 @@ function! s:CdToProjectRoot()
 		exec 'pwd'
 	endif
 endfunc
+
+
+"----------------------------------------------------------------------
+" edit current snippet file
+"----------------------------------------------------------------------
+command! -nargs=0 CodeSnipEdit call s:CodeSnipEdit()
+function! s:CodeSnipEdit()
+	if &ft == ''
+		call asclib#core#errmsg('non-empty file type required')
+		return 0
+	elseif exists(':SnipMateLoadScope') == 2 && exists(':SnipMateEdit') == 2
+		SnipMateEdit
+	elseif exits(':UltiSnipsEdit') == 2
+		UltiSnipEdit
+	endif
+	return 0
+endfunc
+
+
+
+"----------------------------------------------------------------------
+" list loaded scripts
+"----------------------------------------------------------------------
+command! -nargs=0 ScriptNames call s:ScriptNames()
+function! s:ScriptNames()
+	redir => x
+	silent scriptnames
+	redir END
+	tabnew
+	let save = @0
+	let @0 = x
+	exec 'normal "0Pggdd'
+	let @0 = save
+	setlocal nomodified
+endfunc
+
+
 

@@ -21,9 +21,30 @@ function! asclib#path#chdir(path)
 	if has('nvim')
 		let cmd = haslocaldir()? 'lcd' : (haslocaldir(-1, 0)? 'tcd' : 'cd')
 	else
-		let cmd = haslocaldir()? 'lcd' : 'cd'
+		let cmd = haslocaldir()? ((haslocaldir() == 1)? 'lcd' : 'tcd') : 'cd'
 	endif
 	silent execute cmd . ' '. fnameescape(a:path)
+endfunc
+
+
+"----------------------------------------------------------------------
+" CD command
+"----------------------------------------------------------------------
+function! asclib#path#getcd()
+	if has('nvim')
+		let cmd = haslocaldir()? 'lcd' : (haslocaldir(-1, 0)? 'tcd' : 'cd')
+	else
+		let cmd = haslocaldir()? ((haslocaldir() == 1)? 'lcd' : 'tcd') : 'cd'
+	endif
+	return cmd
+endfunc
+
+
+"----------------------------------------------------------------------
+" change dir with noautocmd prefix
+"----------------------------------------------------------------------
+function! asclib#path#chdir_noautocmd(path)
+	noautocmd call asclib#path#chdir(a:path)
 endfunc
 
 
@@ -45,8 +66,16 @@ function! asclib#path#abspath(path)
 	endif
 	if f == '%'
 		let f = expand('%')
-		if &bt == 'terminal' || &bt == 'nofile'
+		if &bt == 'terminal'
 			let f = ''
+		elseif &bt == 'nofile'
+			let is_directory = 0
+			if f =~ '[\/\\]$'
+				if f =~ '^[\/\\]' || f =~ '^.:[\/\\]'
+					let is_directory = isdirectory(f)
+				endif
+			endif
+			let f = (is_directory)? f : ''
 		endif
 	elseif f =~ '^\~[\/\\]'
 		let f = expand(f)
@@ -71,8 +100,7 @@ function! asclib#path#isabs(path)
 		return 1
 	endif
 	if s:windows != 0
-		let head = strpart(path, 1, 2)
-		if head == ':/' || head == ":\\"
+		if path =~ '^.:[\/\\]'
 			return 1
 		endif
 		let head = strpart(path, 0, 1)
@@ -136,14 +164,26 @@ endfunc
 function! asclib#path#normalize(path, ...)
 	let lower = (a:0 > 0)? a:1 : 0
 	let path = a:path
+	if (s:windows == 0 && path == '/') || (s:windows && path =~ '^.:[\/\\]')
+		let path = fnamemodify(path, ':p')
+	else
+		if s:windows == 0 || (s:windows && path !~ '^.:')
+			let path = fnamemodify(path, ':.')
+		endif
+	endif
 	if s:windows
 		let path = tr(path, "\\", '/')
 	endif
 	if lower && (s:windows || has('win32unix'))
 		let path = tolower(path)
 	endif
+	if path =~ '^[\/\\]$'
+		return path
+	elseif s:windows && path =~ '^.:[\/\\]$'
+		return path
+	endif
 	let size = len(path)
-	if path[size - 1] == '/'
+	if size > 1 && path[size - 1] == '/'
 		let path = strpart(path, 0, size - 1)
 	endif
 	return path
@@ -166,9 +206,26 @@ endfunc
 " returns 1 for equal, 0 for not equal
 "----------------------------------------------------------------------
 function! asclib#path#equal(path1, path2)
+	if a:path1 == a:path2
+		return 1
+	endif
 	let p1 = asclib#path#normcase(asclib#path#abspath(a:path1))
 	let p2 = asclib#path#normcase(asclib#path#abspath(a:path2))
 	return (p1 == p2)? 1 : 0
+endfunc
+
+
+"----------------------------------------------------------------------
+" return 1 if base directory contains child, 0 for not contain
+"----------------------------------------------------------------------
+function! asclib#path#contains(base, child)
+	let base = asclib#path#abspath(a:base)
+	let child = asclib#path#abspath(a:child)
+	let base = asclib#path#normalize(base) . '/'
+	let child = asclib#path#normalize(child)
+	let base = asclib#path#normcase(base)
+	let child = asclib#path#normcase(child)
+	return (stridx(child, base) == 0)? 1 : 0
 endfunc
 
 
@@ -317,6 +374,10 @@ function! asclib#path#exists(path)
 		return 1
 	elseif filereadable(a:path)
 		return 1
+	else
+		if !empty(asclib#path#glob(a:path, 1))
+			return 1
+		endif
 	endif
 	return 0
 endfunc
@@ -506,5 +567,105 @@ function! asclib#path#expand_macros()
 	endif
 	return macros
 endfunc
+
+
+"----------------------------------------------------------------------
+" glob() / globpath()
+"----------------------------------------------------------------------
+if v:version == 704 && has('patch279') || v:version > 704
+	" This one has both {nosuf} and {list}.
+	function! s:glob( ... )
+		return call('glob', a:000)
+	endfunc
+	function! s:globpath( ... )
+		return call('globpath', a:000)
+	endfunc
+elseif v:version == 703 && has('patch465') || v:version > 703
+	" This one has glob() with both {nosuf} and {list}.
+	function! s:glob( ... )
+		return call('glob', a:000)
+	endfunc
+	function! s:globpath( ... )
+		let l:list = (a:0 > 3 && a:4)
+		let l:result = call('globpath', a:000[0:2])
+		return (l:list ? split(l:result, '\n') : l:result)
+	endfunc
+elseif v:version == 702 && has('patch051') || v:version > 702
+	" This one has {nosuf}.
+	function! s:glob( ... )
+		let l:list = (a:0 > 2 && a:3)
+		let l:result = call('glob', a:000[0:1])
+		return (l:list ? split(l:result, '\n') : l:result)
+	endfunc
+	function! s:globpath( ... )
+		let l:list = (a:0 > 3 && a:4)
+		let l:result = call('globpath', a:000[0:2])
+		return (l:list ? split(l:result, '\n') : l:result)
+	endfunc
+else
+	" This one has neither {nosuf} nor {list}.
+	function! s:glob( ... )
+		let l:nosuf = (a:0 > 1 && a:2)
+		let l:list = (a:0 > 2 && a:3)
+		if l:nosuf
+			let l:save_wildignore = &wildignore
+			set wildignore=
+		endif
+		try
+			let l:result = call('glob', [a:1])
+			return (l:list ? split(l:result, '\n') : l:result)
+		finally
+			if exists('l:save_wildignore')
+				let &wildignore = l:save_wildignore
+			endif
+		endtry
+	endfunc
+	function! s:globpath( ... )
+		let l:nosuf = (a:0 > 2 && a:3)
+		let l:list = (a:0 > 3 && a:4)
+		if l:nosuf
+			let l:save_wildignore = &wildignore
+			set wildignore=
+		endif
+		try
+			let l:result = call('globpath', a:000[0:1])
+			return (l:list ? split(l:result, '\n') : l:result)
+		finally
+			if exists('l:save_wildignore')
+				let &wildignore = l:save_wildignore
+			endif
+		endtry
+	endfunc
+endif
+
+function! asclib#path#glob(...)
+	return call('s:glob', a:000)
+endfunc
+
+function! asclib#path#globpath(...)
+	return call('s:globpath', a:000)
+endfunc
+
+
+"----------------------------------------------------------------------
+" list path
+"----------------------------------------------------------------------
+function! asclib#path#list(path, ...)
+	let nosuf = (a:0 > 0)? (a:1) : 0
+	if !isdirectory(a:path)
+		return []
+	endif
+	let path = asclib#path#join(a:path, '*')
+	let part = asclib#path#glob(path, nosuf)
+	let candidate = []
+	for n in split(part, "\n")
+		let f = fnamemodify(n, ':t')
+		if !empty(f)
+			let candidate += [f]
+		endif
+	endfor
+	return candidate
+endfunc
+
 
 

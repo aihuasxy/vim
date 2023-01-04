@@ -3,7 +3,7 @@
 " utils.vim - 
 "
 " Created by skywind on 2019/12/19
-" Last Modified: 2021/12/22 19:29
+" Last Modified: 2022/08/24 20:05
 "
 "======================================================================
 
@@ -15,19 +15,26 @@
 "----------------------------------------------------------------------
 function! quickui#utils#item_parse(description)
 	let obj = {'text':'', 'key_pos':-1, 'key_char':'', 'is_sep':0, 'help':''}
-	let obj.info = []
 	let text = ''
+	let child = 0
 	if type(a:description) == v:t_string
 		let text = a:description
 		let obj.help = ''
 		let obj.cmd = ''
-		let obj.info = [ text ]
 	elseif type(a:description) == v:t_list
 		let size = len(a:description)
 		let text = (size >= 1)? a:description[0] : ''
-		let obj.cmd = (size >= 2)? a:description[1] : ''
 		let obj.help = (size >= 3)? a:description[2] : ''
-		let obj.info = deepcopy(a:description)
+		let obj.cmd = ''
+		if size >= 2
+			if type(a:description[1]) == v:t_string
+				let obj.cmd = a:description[1]
+			elseif type(a:description[1]) == v:t_list
+				let obj.cmd = ''
+				let obj.child = a:description[1]
+				let child = 1
+			endif
+		endif
 	endif
 	if text =~ '^-\+$'
 		let obj.is_sep = 1
@@ -44,6 +51,7 @@ function! quickui#utils#item_parse(description)
 			let obj.enable = 0
 		endif
 		let pos = stridx(text, "\t")
+		let sep = ">"
 		if pos < 0 
 			let obj.text = text
 			let obj.desc = ""
@@ -52,6 +60,7 @@ function! quickui#utils#item_parse(description)
 			let obj.desc = strpart(text, pos + 1)
 			let obj.desc = substitute(obj.desc, "\t", " ", "g")
 		endif
+		let obj.desc = (child == 0)? obj.desc : sep
 		let text = obj.text
 		let rest = ''
 		let start = 0
@@ -783,6 +792,115 @@ function! quickui#utils#switch(filename, opts)
 		exec cmd
 	endfor
 	return 1
+endfunc
+
+
+
+"----------------------------------------------------------------------
+" returns 1 if filetype matches pattern, otherwise returns 0
+"----------------------------------------------------------------------
+function! quickui#utils#match_ft(filetype, pattern)
+	let pattern = quickui#core#string_strip(a:pattern)
+	let ft = a:filetype
+	if pattern == ''
+		return 0
+	elseif pattern =~ '^/'
+		let pattern = strpart(pattern, 1)
+		if match(ft, pattern) >= 0
+			return 1
+		endif
+	elseif pattern =~ '^!'
+		let pattern = strpart(pattern, 1)
+		if match(ft, pattern) < 0
+			return 1
+		endif
+	endif
+	let blacklist = []
+	let whitelist = []
+	for check in split(pattern, ',')
+		if pattern[0] == '-'
+			let blacklist += [check]
+		else
+			let whitelist += [check]
+		endif
+	endfor
+	if index(blacklist, '-' . ft) >= 0
+		return 0
+	endif
+	if empty(whitelist) || index(whitelist, ft) >= 0
+		return 1
+	endif
+	return 0
+endfunc
+
+
+"----------------------------------------------------------------------
+" format table
+"----------------------------------------------------------------------
+function! quickui#utils#tabulify(rows)
+	let content = []
+	let rows = []
+	let nrows = len(a:rows)
+	let ncols = 0
+	for row in a:rows
+		if len(row) > ncols
+			let ncols = len(row)
+		endif
+	endfor
+	if nrows == 0 || ncols == 0
+		return content
+	endif
+	let sizes = repeat([0], ncols)
+	let index = range(ncols)
+	for row in a:rows
+		let newrow = deepcopy(row)
+		if len(newrow) < ncols
+			let newrow += repeat([''], ncols - len(newrow))
+		endif
+		for i in index
+			let size = strwidth(newrow[i])
+			let sizes[i] = (sizes[i] < size)? size : sizes[i]
+		endfor
+		let rows += [newrow]
+	endfor
+	for row in rows
+		let ni = []
+		for i in index
+			let x = row[i]
+			let size = strwidth(x)
+			if size < sizes[i]
+				let x = x . repeat(' ', sizes[i] - size)
+			endif
+			let ni += [x]
+		endfor
+		let content += [ni]
+	endfor
+	return content
+endfunc
+
+
+"----------------------------------------------------------------------
+" print table
+"----------------------------------------------------------------------
+function! quickui#utils#print_table(rows, highmap)
+	let content = quickui#utils#tabulify(a:rows)
+	let index = 0
+	for line in content
+		let col = 0
+		echon (index == 0)? " " : "\n "
+		for cell in line
+			let key = index . ',' . col
+			if !has_key(a:highmap, key)
+				echohl None
+			else
+				exec 'echohl ' . a:highmap[key]
+			endif
+			echon cell . '  '
+			let col += 1
+		endfor
+		let index += 1
+	endfor
+	echohl None
 endfunc
 
 

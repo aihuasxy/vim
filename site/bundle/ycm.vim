@@ -11,6 +11,7 @@ let g:ycm_complete_in_strings=1
 let g:ycm_key_invoke_completion = '<c-z>'
 let g:ycm_disable_signature_help = 1
 let g:ycm_auto_hover = ''
+let g:ycm_use_ultisnips_completer = 0
 
 set completeopt=menu,menuone
 

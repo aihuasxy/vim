@@ -15,6 +15,7 @@
 let s:netrw_up = ''
 let s:windows = has('win32') || has('win64') || has('win16') || has('win95')
 
+" finish
 
 "----------------------------------------------------------------------
 " configure
@@ -114,13 +115,17 @@ function! s:open(cmd) abort
 		call s:seek(currdir)
 	elseif &modifiable == 0 && &ft != 'help'
 		return 
-	elseif shortname == ""
+	elseif shortname == "" 
 		exec a:cmd '.'
 	elseif expand('%') =~# '^$\|^term:[\/][\/]'	
 		exec a:cmd '.'
 	else
-		exec a:cmd '%:p:h'
-		let hr = s:seek(filename)
+        if exists(':Dirvish') == 2 && a:cmd == 'edit'
+            exec 'Dirvish'
+        else
+            exec a:cmd ' %:p:h'
+            let hr = s:seek(filename)
+        endif
 	endif
 endfunc
 
@@ -178,6 +183,8 @@ function! s:setup_vinegar()
 	elseif &ft == 'dirvish'
         exec 'nmap <buffer><silent> ' . key. ' <Plug>(dirvish_up)'
 		nnoremap <silent><buffer> r :Dirvish %<cr>
+    elseif &ft == 'markdown' || &ft == 'vimwiki'
+        exec 'nnoremap <buffer><silent> ' . key. ' :VinegarOpen edit<cr>'
 	endif
 endfunc
 
@@ -190,6 +197,7 @@ augroup VinegarGroup
 	" autocmd FileType netrw call s:setup_vinegar()
 	autocmd FileType nerdtree call s:setup_vinegar()
 	autocmd FileType dirvish call s:setup_vinegar()
+	autocmd FileType markdown,vimwiki call s:setup_vinegar()
 augroup END
 
 

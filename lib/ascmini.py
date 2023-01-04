@@ -6,7 +6,7 @@
 # ascmini.py - mini library
 #
 # Created by skywind on 2017/03/24
-# Version: 8, Last Modified: 2020/11/01 15:06
+# Version: 8, Last Modified: 2022/10/18 23:22
 #
 #======================================================================
 from __future__ import print_function, unicode_literals
@@ -1694,6 +1694,30 @@ def fzf_execute(input, args = None, fzf = None):
     if code != 0:
         return None
     return output
+
+
+#----------------------------------------------------------------------
+# write application level log
+#----------------------------------------------------------------------
+def mlog(*args):
+    import sys, codecs, os, time
+    now = time.strftime('%Y-%m-%d %H:%M:%S')
+    part = [ str(n) for n in args ]
+    text = u' '.join(part)
+    logfile = sys.modules[__name__].__dict__.get('_mlog_file', None)
+    encoding = sys.modules[__name__].__dict__.get('_mlog_encoding', 'utf-8')
+    stdout = sys.modules[__name__].__dict__.get('_mlog_stdout', True)
+    if logfile is None:
+        name = os.path.abspath(sys.argv[0])
+        name = os.path.splitext(name)[0] + '.log'
+        logfile = codecs.open(name, 'a', encoding = encoding, errors = 'ignore')
+        sys.modules[__name__]._mlog_file = logfile
+    content = '[%s] %s'%(now, text)
+    if logfile:
+        logfile.write(content + '\r\n')
+        logfile.flush()
+    sys.stdout.write(content + '\n')
+    return 0
 
 
 #----------------------------------------------------------------------

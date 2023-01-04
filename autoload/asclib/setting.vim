@@ -66,10 +66,12 @@ endfunc
 
 function! asclib#setting#save()
 	call s:cfg_init()
-	try
-		call asclib#ini#save(s:cfg_name, s:cfg_config)
-	catch
-	endtry
+	if s:cfg_dirty != 0
+		try
+			call asclib#ini#save(s:cfg_name, s:cfg_config)
+		catch
+		endtry
+	endif
 	let s:cfg_dirty = 0
 endfunc
 

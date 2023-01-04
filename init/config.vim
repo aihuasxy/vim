@@ -54,18 +54,22 @@ endfunc
 
 " get a single tab name 
 function! Vim_NeatBuffer(bufnr, fullname)
-	let l:name = bufname(a:bufnr)
+	let name = bufname(a:bufnr)
 	let bt = getbufvar(a:bufnr, '&buftype')
+	let xname = getbufvar(a:bufnr, '__asc_bufname', '')
+	if xname != ''
+		return xname
+	endif
 	if getbufvar(a:bufnr, '&modifiable')
-		if l:name == ''
+		if name == ''
 			return '[No Name]'
 		elseif bt == 'terminal'
 			return '[Terminal]'
 		else
 			if a:fullname 
-				return fnamemodify(l:name, ':p')
+				return fnamemodify(name, ':p')
 			else
-				let aname = fnamemodify(l:name, ':p')
+				let aname = fnamemodify(name, ':p')
 				let sname = fnamemodify(aname, ':t')
 				if sname == ''
 					let test = fnamemodify(aname, ':h:t')
@@ -82,11 +86,11 @@ function! Vim_NeatBuffer(bufnr, fullname)
 			return '[Quickfix]'
 		elseif bt == 'terminal'
 			return '[Terminal]'
-		elseif l:name != ''
+		elseif name != ''
 			if a:fullname 
-				return '-'.fnamemodify(l:name, ':p')
+				return '-'.fnamemodify(name, ':p')
 			else
-				return '-'.fnamemodify(l:name, ':t')
+				return '-'.fnamemodify(name, ':t')
 			endif
 		else
 		endif
@@ -164,6 +168,10 @@ set guitablabel=%{Vim_NeatGuiTabLabel()}
 set guitabtooltip=%{Vim_NeatGuiTabTip()}
 
 
+
+"----------------------------------------------------------------------
+" Tab Manipulation
+"----------------------------------------------------------------------
 function! Tab_MoveLeft()
 	let l:tabnr = tabpagenr() - 2
 	if l:tabnr >= 0
@@ -182,6 +190,10 @@ function! s:Filter_Push(desc, wildcard)
 	let g:browsefilter .= a:desc . " (" . a:wildcard . ")\t" . a:wildcard . "\n"
 endfunc
 
+
+"----------------------------------------------------------------------
+" GVim Dialogs
+"----------------------------------------------------------------------
 let g:browsefilter = ''
 call s:Filter_Push("All Files", "*")
 call s:Filter_Push("C/C++/Object-C", "*.c;*.cpp;*.cc;*.h;*.hh;*.hpp;*.m;*.mm")
@@ -190,7 +202,9 @@ call s:Filter_Push("Text", "*.txt")
 call s:Filter_Push("Vim Script", "*.vim")
 
 
-" restore screen after quitting
+"----------------------------------------------------------------------
+" terminal turn
+"----------------------------------------------------------------------
 if has('unix')
 	" disable modifyOtherKeys
 	if exists('+t_TI') && exists('+t_TE')
@@ -217,117 +231,6 @@ if has('unix')
 		endif
 		set restorescreen
 	endif
-endif
-
-
-function! Terminal_SwitchTab()
-	if has('gui_running')
-		return
-	endif
-	for i in range(10)
-		let x = (i == 0)? 10 : i
-		exec "noremap <silent><M-".i."> :tabn ".x."<cr>"
-		exec "inoremap <silent><M-".i."> <ESC>:tabn ".x."<cr>"
-	endfor
-	noremap <silent><m-t> :tabnew<cr>
-	inoremap <silent><m-t> <ESC>:tabnew<cr>
-	noremap <silent><m-w> :tabclose<cr>
-	inoremap <silent><m-w> <ESC>:tabclose<cr>
-	noremap <m-s> :w<cr>
-	inoremap <m-s> <esc>:w<cr>
-endfunc
-
-function! Terminal_MetaMode(mode)
-	set ttimeout
-	if $TMUX != ''
-		set ttimeoutlen=30
-	elseif &ttimeoutlen > 80 || &ttimeoutlen <= 0
-		set ttimeoutlen=80
-	endif
-	if has('nvim') || has('gui_running')
-		return
-	endif
-	function! s:metacode(mode, key)
-		if a:mode == 0
-			exec "set <M-".a:key.">=\e".a:key
-		else
-			exec "set <M-".a:key.">=\e]{0}".a:key."~"
-		endif
-	endfunc
-	for i in range(10)
-		call s:metacode(a:mode, nr2char(char2nr('0') + i))
-	endfor
-	for i in range(26)
-		call s:metacode(a:mode, nr2char(char2nr('a') + i))
-		call s:metacode(a:mode, nr2char(char2nr('A') + i))
-	endfor
-	if a:mode != 0
-		for c in [',', '.', '/', ';', '[', ']', '{', '}']
-			call s:metacode(a:mode, c)
-		endfor
-		for c in ['?', ':', '-', '_', '+', '=']
-			call s:metacode(a:mode, c)
-		endfor
-	else
-		for c in [',', '.', '/', ';', '{', '}']
-			call s:metacode(a:mode, c)
-		endfor
-		for c in ['?', ':', '-', '_', '+', '=', "'"]
-			call s:metacode(a:mode, c)
-		endfor
-	endif
-endfunc
-
-
-function! Terminal_KeyEscape(name, code)
-	if has('nvim') || has('gui_running')
-		return
-	endif
-	exec "set ".a:name."=\e".a:code
-endfunc
-
-
-command! -nargs=0 -bang VimMetaInit call Terminal_MetaMode(<bang>0)
-command! -nargs=+ VimKeyEscape call Terminal_KeyEscape(<f-args>)
-
-
-function! Terminal_FnInit(mode)
-	if has('nvim') || has('gui_running')
-		return
-	endif
-	if a:mode == 1
-		VimKeyEscape <F1> OP
-		VimKeyEscape <F2> OQ
-		VimKeyEscape <F3> OR
-		VimKeyEscape <F4> OS
-		VimKeyEscape <S-F1> [1;2P
-		VimKeyEscape <S-F2> [1;2Q
-		VimKeyEscape <S-F3> [1;2R
-		VimKeyEscape <S-F4> [1;2S
-		VimKeyEscape <S-F5> [15;2~
-		VimKeyEscape <S-F6> [17;2~
-		VimKeyEscape <S-F7> [18;2~
-		VimKeyEscape <S-F8> [19;2~
-		VimKeyEscape <S-F9> [20;2~
-		VimKeyEscape <S-F10> [21;2~
-		VimKeyEscape <S-F11> [23;2~
-		VimKeyEscape <S-F12> [24;2~
-	endif
-endfunc
-
-function! Terminal_MetaShiftNum()
-	let array = [')', '!', '@', '#', '$', '%', '^', '&', '*', '(']
-	for i in range(10)
-		exec "set <m-" . i . ">=\e" . array[i]
-	endfor
-endfunc
-
-
-call Terminal_SwitchTab()
-
-if get(g:, 'asc_skip_meta_fn_setup', 0) == 0
-	call Terminal_MetaMode(0)
-	call Terminal_FnInit(1)
 endif
 
 
